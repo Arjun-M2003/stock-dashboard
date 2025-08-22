@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-//import { Search, TrendingUp, TrendingDown, RefreshCw, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, TrendingUp, TrendingDown, RefreshCw, AlertCircle } from 'lucide-react';
 
 const StockDashboard = () => {
   const [stocks, setStocks] = useState([]);
@@ -98,6 +98,49 @@ const StockDashboard = () => {
     }
   };
 
-}
+  useEffect(() => {
+    fetchStockData();
+  }, []);
+
+  const handleSort = (field) => {
+    const direction = field === sortField && sortDirection === 'asc' ? 'desc' : 'asc';
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  const sortedAndFilteredStocks = stocks
+    .filter(stock => 
+      stock.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      stock.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+      
+      if (typeof aValue === 'string' && !isNaN(parseFloat(aValue))) {
+        aValue = parseFloat(aValue);
+        bValue = parseFloat(bValue);
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat().format(num);
+  };
+
+  const formatCurrency = (num) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(num);
+  };
+
+  
+};
 
 export default StockDashboard;

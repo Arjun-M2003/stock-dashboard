@@ -5,4 +5,4 @@ function App() {
   return <StockDashboard />;
 }
 
-export default StockDashboard;
+export default App;
