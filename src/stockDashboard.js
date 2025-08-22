@@ -98,58 +98,93 @@ const StockDashboard = () => {
     });
 
   return (
-    <div className="dashboard-container">
-      {/* Header */}
-      <header className="dashboard-header">
-        <h1>Stock Dashboard</h1>
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Search stocks..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button onClick={fetchStockData}><RefreshCw /></button>
-        </div>
-      </header>
+  <div className="min-h-screen bg-gray-100 p-8">
+    <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-6">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">
+        📊 Stock Dashboard
+      </h1>
 
-      {/* Loading / Error */}
-      {loading && <div>Loading...</div>}
-      {error && <div>{error}</div>}
+      {/* Search Bar */}
+      <input
+        type="text"
+        placeholder="Search stocks..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full mb-6 p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+      />
 
-      {/* Stock Table */}
-      <table className="stock-table">
-        <thead>
-          <tr>
-            <th onClick={() => handleSort('symbol')}>Symbol</th>
-            <th onClick={() => handleSort('name')}>Company</th>
-            <th onClick={() => handleSort('price')}>Price</th>
-            <th onClick={() => handleSort('change')}>Change</th>
-            <th onClick={() => handleSort('changePercent')}>% Change</th>
-            <th onClick={() => handleSort('volume')}>Volume</th>
-            <th>High</th>
-            <th>Low</th>
-            <th>Last Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedAndFilteredStocks.map((stock) => (
-            <tr key={stock.symbol}>
-              <td>{stock.symbol}</td>
-              <td>{stock.name}</td>
-              <td>{stock.price}</td>
-              <td className={stock.change >= 0 ? 'up' : 'down'}>{stock.change}</td>
-              <td className={stock.changePercent >= 0 ? 'up' : 'down'}>{stock.changePercent}%</td>
-              <td>{stock.volume}</td>
-              <td>{stock.high}</td>
-              <td>{stock.low}</td>
-              <td>{stock.lastUpdated}</td>
+      {/* Error Handling */}
+      {error && (
+        <div className="text-red-500 font-medium mb-4">{error}</div>
+      )}
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse rounded-lg overflow-hidden">
+          <thead>
+            <tr className="bg-blue-600 text-white text-left">
+              <th className="px-4 py-2">Symbol</th>
+              <th className="px-4 py-2">Company</th>
+              <th className="px-4 py-2">Price</th>
+              <th className="px-4 py-2">Change</th>
+              <th className="px-4 py-2">% Change</th>
+              <th className="px-4 py-2">Volume</th>
+              <th className="px-4 py-2">High</th>
+              <th className="px-4 py-2">Low</th>
+              <th className="px-4 py-2">Last Updated</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {stocks.length > 0 ? (
+              stocks.map((stock) => (
+                <tr
+                  key={stock.symbol}
+                  className="border-b hover:bg-gray-50 transition"
+                >
+                  <td className="px-4 py-2 font-semibold">{stock.symbol}</td>
+                  <td className="px-4 py-2">{stock.company}</td>
+                  <td className="px-4 py-2">${stock.price}</td>
+                  <td
+                    className={`px-4 py-2 ${
+                      stock.change >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {stock.change}
+                  </td>
+                  <td
+                    className={`px-4 py-2 ${
+                      stock.changePercent >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {stock.changePercent}%
+                  </td>
+                  <td className="px-4 py-2">{stock.volume}</td>
+                  <td className="px-4 py-2">${stock.high}</td>
+                  <td className="px-4 py-2">${stock.low}</td>
+                  <td className="px-4 py-2 text-sm text-gray-500">
+                    {stock.lastUpdated}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan="9"
+                  className="text-center py-6 text-gray-500 italic"
+                >
+                  No stock data available
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
-  );
+  </div>
+);
+
 };
 
 export default StockDashboard;
