@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, TrendingUp, TrendingDown, RefreshCw, AlertCircle } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 
 const StockDashboard = () => {
   const [stocks, setStocks] = useState([]);
@@ -9,21 +9,9 @@ const StockDashboard = () => {
   const [sortField, setSortField] = useState('symbol');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Popular stocks to display
-  const stockSymbols = [
-    'AAPL',
-    'GOOGL',
-    'MSFT',
-    'AMZN',
-    'TSLA',
-    'META',
-    'NVDA',
-    'NFLX',
-  ];
-
+  const stockSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN'];
   const API_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY;
 
-  // Company names mapping
   const companyNames = {
     AAPL: 'Apple Inc.',
     GOOGL: 'Alphabet Inc.',
@@ -32,7 +20,7 @@ const StockDashboard = () => {
     TSLA: 'Tesla Inc.',
     META: 'Meta Platforms Inc.',
     NVDA: 'NVIDIA Corporation',
-    NFLX: 'Netflix Inc.',
+    NFLX: 'Netflix Inc.'
   };
 
   const fetchStockData = async () => {
@@ -40,7 +28,7 @@ const StockDashboard = () => {
     setError(null);
 
     if (!API_KEY) {
-      setError('API key not found. Please check your .env.local file.');
+      setError('API key not found.');
       setLoading(false);
       return;
     }
@@ -48,65 +36,37 @@ const StockDashboard = () => {
     try {
       const stockPromises = stockSymbols.map(async (symbol) => {
         const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${symbol}&interval=5min&apikey=${API_KEY}&outputsize=compact`;
-
         const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
         const data = await response.json();
-
-        // Check for API errors
-        if (data['Error Message']) {
-          throw new Error(data['Error Message']);
-        }
-
-        if (data['Note']) {
-          throw new Error(
-            'API call frequency limit reached. Please try again in a minute.'
-          );
-        }
+        console.log(symbol, data);
 
         const timeSeries = data['Time Series (5min)'];
-        if (!timeSeries) {
-          throw new Error('No time series data available');
-        }
-
-        // Get the most recent data point
         const timestamps = Object.keys(timeSeries);
-        const latestTimestamp = timestamps[0];
-        const latestData = timeSeries[latestTimestamp];
+        const latest = timeSeries[timestamps[0]];
+        const previous = timeSeries[timestamps[1]] || latest;
 
-        // Get previous data point for change calculation
-        const previousTimestamp = timestamps[1];
-        const previousData = timeSeries[previousTimestamp];
-
-        const currentPrice = parseFloat(latestData['4. close']);
-        const previousPrice = previousData
-          ? parseFloat(previousData['4. close'])
-          : currentPrice;
+        const currentPrice = parseFloat(latest['4. close']);
+        const previousPrice = parseFloat(previous['4. close']);
         const change = currentPrice - previousPrice;
-        const changePercent =
-          previousPrice !== 0 ? (change / previousPrice) * 100 : 0;
+        const changePercent = previousPrice !== 0 ? (change / previousPrice) * 100 : 0;
 
         return {
           symbol,
-          name: companyNames[symbol] || symbol,
+          name: companyNames[symbol],
           price: currentPrice.toFixed(2),
           change: change.toFixed(2),
           changePercent: changePercent.toFixed(2),
-          volume: parseInt(latestData['5. volume']).toLocaleString(),
-          high: parseFloat(latestData['2. high']).toFixed(2),
-          low: parseFloat(latestData['3. low']).toFixed(2),
-          lastUpdated: latestTimestamp,
+          volume: parseInt(latest['5. volume']).toLocaleString(),
+          high: parseFloat(latest['2. high']).toFixed(2),
+          low: parseFloat(latest['3. low']).toFixed(2),
+          lastUpdated: timestamps[0]
         };
       });
 
       const stockData = await Promise.all(stockPromises);
       setStocks(stockData);
     } catch (err) {
-      console.error('Error fetching stock data:', err);
-      setError(err.message || 'Failed to fetch stock data. Please try again.');
+      setError('Failed to fetch stock data.');
     } finally {
       setLoading(false);
     }
@@ -117,51 +77,31 @@ const StockDashboard = () => {
   }, []);
 
   const handleSort = (field) => {
-    const direction =
-      field === sortField && sortDirection === 'asc' ? 'desc' : 'asc';
+    const direction = field === sortField && sortDirection === 'asc' ? 'desc' : 'asc';
     setSortField(field);
     setSortDirection(direction);
   };
 
   const sortedAndFilteredStocks = stocks
-    .filter(
-      (stock) =>
-        stock.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        stock.name.toLowerCase().includes(searchTerm.toLowerCase())
+    .filter(stock =>
+      stock.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      stock.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-
-      if (typeof aValue === 'string' && !isNaN(parseFloat(aValue))) {
+      if (!isNaN(parseFloat(aValue))) {
         aValue = parseFloat(aValue);
         bValue = parseFloat(bValue);
       }
-
-      if (sortDirection === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
+      return sortDirection === 'asc' ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
     });
-
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat().format(num);
-  };
-
-  const formatCurrency = (num) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(num);
-  };
 
   return (
     <div className="dashboard-container">
-      {/* Header / Top Bar */}
+      {/* Header */}
       <header className="dashboard-header">
         <h1>Stock Dashboard</h1>
-        {/* Search bar */}
         <div className="search-bar">
           <input
             type="text"
@@ -169,49 +109,45 @@ const StockDashboard = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button>Refresh</button>
+          <button onClick={fetchStockData}><RefreshCw /></button>
         </div>
       </header>
 
-      {/* Error / Loading */}
-      {loading && <div className="loading">Loading...</div>}
-      {error && <div className="error">{error}</div>}
+      {/* Loading / Error */}
+      {loading && <div>Loading...</div>}
+      {error && <div>{error}</div>}
 
-      {/* Stock List / Table */}
-      <div className="stock-list">
-        {sortedAndFilteredStocks.map((stock) => (
-          <div key={stock.symbol} className="stock-card">
-            {/* Stock Header */}
-            <div className="stock-header">
-              <span className="stock-symbol">{stock.symbol}</span>
-              <span className="stock-name">{stock.name}</span>
-            </div>
-
-            {/* Stock Prices */}
-            <div className="stock-prices">
-              <span className="current-price">{stock.price}</span>
-              <span
-                className={`change ${stock.change >= 0 ? 'up' : 'down'}`}
-              >
-                {stock.change} ({stock.changePercent}%)
-              </span>
-            </div>
-
-            {/* Stock Stats */}
-            <div className="stock-stats">
-              <span>Volume: {stock.volume}</span>
-              <span>High: {stock.high}</span>
-              <span>Low: {stock.low}</span>
-              <span>Last Updated: {stock.lastUpdated}</span>
-            </div>
-
-            {/* Optional: trend icons or charts */}
-            <div className="stock-trend">
-              {/* TrendingUp / TrendingDown icon placeholder */}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Stock Table */}
+      <table className="stock-table">
+        <thead>
+          <tr>
+            <th onClick={() => handleSort('symbol')}>Symbol</th>
+            <th onClick={() => handleSort('name')}>Company</th>
+            <th onClick={() => handleSort('price')}>Price</th>
+            <th onClick={() => handleSort('change')}>Change</th>
+            <th onClick={() => handleSort('changePercent')}>% Change</th>
+            <th onClick={() => handleSort('volume')}>Volume</th>
+            <th>High</th>
+            <th>Low</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedAndFilteredStocks.map((stock) => (
+            <tr key={stock.symbol}>
+              <td>{stock.symbol}</td>
+              <td>{stock.name}</td>
+              <td>{stock.price}</td>
+              <td className={stock.change >= 0 ? 'up' : 'down'}>{stock.change}</td>
+              <td className={stock.changePercent >= 0 ? 'up' : 'down'}>{stock.changePercent}%</td>
+              <td>{stock.volume}</td>
+              <td>{stock.high}</td>
+              <td>{stock.low}</td>
+              <td>{stock.lastUpdated}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
